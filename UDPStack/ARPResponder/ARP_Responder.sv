@@ -1,33 +1,27 @@
 module ARP_Responder
 #(
-    parameter   [47:0]  P_LOCAL_MAC = 'hAABBCCDD
-
+    parameter   [31:0]  P_LOCAL_IPV4    = 'h112233,
+    parameter   [47:0]  P_LOCAL_MAC     = 'hAABBCCDD
 )
 (
-input I_CLK,
-input I_RESET,
+input logic I_CLK,
+input logic I_RESET,
 
 //AXI STREAM INTERFACE SLAVE
-output  S_AXIS_TREADY,
-input   S_AXIS_TVALID,
-input   S_AXIS_TUSER ,
-input   [7:0]   S_AXIS_TDATA ,
-
-
-
+output  logic S_AXIS_TREADY,
+input   logic S_AXIS_TVALID,
+input   logic S_AXIS_TUSER ,
+input   logic [7:0]   S_AXIS_TDATA ,
 
 //AXI STREAM INTERFACE MASTER
-input   M_AXIS_TREADY,
-output  M_AXIS_TVALID,
-output  M_AXIS_TUSER ,
-output  [7:0]  M_AXIS_TDATA
-
-
+input   logic M_AXIS_TREADY,
+output  logic M_AXIS_TVALID,
+output  logic M_AXIS_TUSER ,
+output  logic [7:0]  M_AXIS_TDATA
 );
+
 //All of these are assuming we are using IPV4
-
 localparam  [15:0]   ETHER_TYPE  = 'h0806;
-
 //Hardware Type
 localparam  [15:0]   HTYPE   = 1;
 //Protocol Type
@@ -54,14 +48,14 @@ logic hlen_match;
 logic plen_match;
 logic oper_match;
 
-logic [47:0]    senders_mac_addr
-logic [47:0]    recv_mac_addr
+logic [47:0]    senders_mac_addr;
+logic [47:0]    recv_mac_addr;
 
-logic [31:0]    senders_ip_addr 
-logic [31:0]    recv_ip_addr
+logic [31:0]    senders_ip_addr ;
+logic [31:0]    recv_ip_addr;
 
 //Receive Logic
-always_ff @ (posedge CLK) begin 
+always_ff @ (posedge I_CLK) begin 
     if(I_RESET == 1) begin 
     
     
@@ -71,22 +65,22 @@ always_ff @ (posedge CLK) begin
         
         //We throw away the begninning local mac address because that field will be checked later on
         //within the ARP packet 
-            if(pattern_buffer[239:224] = ETHER_TYPE) begin
+            if(pattern_buffer[239:224] == ETHER_TYPE) begin
                 ethertype_match <= 1; 
             end
-            if(pattern_buffer[223:208] = HTYPE) begin
+            if(pattern_buffer[223:208] == HTYPE) begin
                 htype_match     <= 1; 
             end
-            if(pattern_buffer[207:192] = PTYPE) begin
+            if(pattern_buffer[207:192] ==PTYPE) begin
                 ptype_match <= 1; 
             end
-            if(pattern_buffer[191:184] = HLEN) begin
+            if(pattern_buffer[191:184] == HLEN) begin
                 hlen_match  <= 1; 
             end
-            if(pattern_buffer[183:176] = PLEN) begin
+            if(pattern_buffer[183:176] == PLEN) begin
                 plen_match  <= 1; 
             end
-            if(pattern_buffer[175:160] = REQ_OPER) begin
+            if(pattern_buffer[175:160] == REQ_OPER) begin
                 oper_match  <= 1; 
             end
             senders_mac_addr    <= pattern_buffer[159:114];
@@ -104,10 +98,11 @@ always_ff @ (posedge CLK) begin
 end
 
 localparam ARP_OCTECT_LENGTH = 42;
-logic [335:0]    transmit_buffer;
+logic [335:0]           transmit_buffer;
+logic [$clog2(336):0]   octect_count;
 
 //Transmit Logic
-always_ff @ (posedge CLK) beign 
+always_ff @ (posedge I_CLK) begin 
     if(I_RESET == 1) begin 
         octect_count <= ARP_OCTECT_LENGTH-1;
     end else begin 
@@ -129,7 +124,8 @@ always_ff @ (posedge CLK) beign
     
         if(octect_count != ARP_OCTECT_LENGTH-1) begin 
             //[start+:increment width] 
-            M_AXIS_TUSER    <= transmit_buffer[octect_count*8:+8];
+            M_AXIS_TUSER    <= transmit_buffer[7:0];
+            transmit_buffer[327:0] <= transmit_buffer[335:8];
             M_AXIS_TVALID   <= 1; 
             octect_count    <= octect_count + 1; 
         end
