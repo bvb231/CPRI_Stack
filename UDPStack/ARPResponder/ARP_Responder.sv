@@ -1,53 +1,45 @@
 module ARP_Responder
 #(
-    parameter   [47:0]  P_LOCAL_MAC = ='hAABBCCDD
+    parameter   [47:0]  P_LOCAL_MAC = 'hAABBCCDD
 
 )
 (
-input logic     I_CLK,
-input logic     I_RESET,
+input I_CLK,
+input I_RESET,
 
 //AXI STREAM INTERFACE SLAVE
-output  logic         S_AXIS_TREADY,
-input   logic         S_AXIS_TVALID,
-input   logic         S_AXIS_TUSER ,
-input   logic [7:0]   S_AXIS_TDATA ,
+output  S_AXIS_TREADY,
+input   S_AXIS_TVALID,
+input   S_AXIS_TUSER ,
+input   [7:0]   S_AXIS_TDATA ,
 
 
 
 
 //AXI STREAM INTERFACE MASTER
-input logic         M_AXIS_TREADY,
-output logic        M_AXIS_TVALID,
-output logic        M_AXIS_TUSER ,
-output logic [7:0]  M_AXIS_TDATA
+input   M_AXIS_TREADY,
+output  M_AXIS_TVALID,
+output  M_AXIS_TUSER ,
+output  [7:0]  M_AXIS_TDATA
 
 
-)
+);
 //All of these are assuming we are using IPV4
 
-localparam  [7:0]   ETHER_TYPE  = 'h0806;
+localparam  [15:0]   ETHER_TYPE  = 'h0806;
 
 //Hardware Type
-localparam  [7:0]   HTYPE   = 1;
+localparam  [15:0]   HTYPE   = 1;
 //Protocol Type
-localparam  [7:0]   PTYPE   = 'h0800;
+localparam  [15:0]   PTYPE   = 'h0800;
 //Hardware Length
-localparam  [3:0]   HLEN    = 6;   
+localparam  [7:0]   HLEN    = 6;   
 //Protocol Length
-localparam          PLEN    = 4; 
+localparam  [7:0]   PLEN    = 4; 
 //Request Operation
-localparam          REQ_OPER    = 1; 
+localparam  [15:0]  REQ_OPER    = 1; 
 //Reply Operation
-localparam          REPLY_OPER    = 1; 
-//Sender Hardware Address
-localparam          SHA
-//Sender Protocol Address
-localparam  SPA
-//Target Hardware Address
-localparam  THA
-//Target Protocol Address
-localparam  TPA
+localparam  [15:0]  REPLY_OPER    = 1; 
 
 
 
@@ -78,7 +70,7 @@ always_ff @ (posedge CLK) begin
             pattern_buffer  <= {pattern_buffer[231:0], S_AXIS_TDATA};
         
         //We throw away the begninning local mac address because that field will be checked later on
-        //within the ARP packet (FYI, THESE NEED TO GET FLIPPED AROUND (time reversed)
+        //within the ARP packet 
             if(pattern_buffer[239:224] = ETHER_TYPE) begin
                 ethertype_match <= 1; 
             end
